@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<!-- Easy Capture To Text — landing page. Served via GitHub Pages once this repo goes public.
+     Remaining pre-launch TODO: drop the demo GIF into assets/demo.gif and swap the .demo placeholder. -->
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Easy Capture To Text — screen to text, instantly & offline</title>
+<meta name="description" content="Press a hotkey, drag a box over any text on screen, and it's on your clipboard. Or turn a clipboard image into pasted text in one shot. Offline, private, no account."/>
+<style>
+  :root{
+    --bg:#0B0F14; --panel:#131A22; --line:#1B2733; --edge:#2A3F55;
+    --ink:#E6EEF7; --muted:#8FA3B8; --accent:#22D3EE; --accent2:#0E7490;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;line-height:1.55}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:960px;margin:0 auto;padding:0 20px}
+  .badge{display:inline-block;font-size:12px;font-weight:600;color:var(--accent);
+         border:1px solid var(--edge);border-radius:999px;padding:4px 12px;background:#132430}
+
+  /* hero */
+  header{padding:64px 0 40px;text-align:center}
+  .logo{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:18px}
+  .logo svg{width:52px;height:52px}
+  .logo h1{font-size:30px;margin:0;letter-spacing:.2px}
+  h2.tag{font-size:40px;line-height:1.15;margin:14px auto 10px;max-width:720px}
+  h2.tag .hl{color:var(--accent)}
+  .sub{color:var(--muted);font-size:18px;max-width:620px;margin:0 auto 26px}
+  .cta{display:inline-flex;align-items:center;gap:10px;background:var(--accent2);
+       color:#fff;font-weight:700;font-size:17px;padding:14px 26px;border-radius:12px;
+       border:1px solid var(--accent);cursor:pointer}
+  .cta[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+  .ctahint{color:var(--muted);font-size:13px;margin-top:10px}
+
+  /* demo */
+  .demo{margin:34px auto 0;max-width:760px;border:1px solid var(--edge);border-radius:16px;
+        background:#0e141b;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;
+        color:var(--muted);font-size:14px;overflow:hidden}
+  .demo img{width:100%;height:100%;object-fit:cover;display:block}
+
+  /* sections */
+  section{padding:46px 0;border-top:1px solid var(--line)}
+  h3.sh{color:var(--accent);font-size:13px;letter-spacing:1.4px;text-transform:uppercase;margin:0 0 18px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}.tag{font-size:30px}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card h4{margin:0 0 6px;font-size:18px}
+  .kbd{display:inline-block;font:600 12px/1 Consolas,monospace;color:var(--accent);
+       background:#132430;border:1px solid var(--accent);border-radius:6px;padding:5px 8px;margin-bottom:10px}
+  .card p{margin:0;color:var(--muted);font-size:14px}
+  .why{display:grid;grid-template-columns:1fr 1fr;gap:14px 28px}
+  @media(max-width:680px){.why{grid-template-columns:1fr}}
+  .why div{padding-left:26px;position:relative;color:var(--muted);font-size:15px}
+  .why div::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+  .why b{color:var(--ink)}
+  .steps{counter-reset:s;display:grid;gap:14px}
+  .steps li{list-style:none;padding-left:44px;position:relative;color:var(--muted)}
+  .steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:-2px;
+       width:28px;height:28px;border-radius:50%;background:#132430;border:1px solid var(--accent);
+       color:var(--accent);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .steps b{color:var(--ink)}
+  .faq h4{margin:18px 0 4px;font-size:16px}
+  .faq p{margin:0;color:var(--muted);font-size:14px}
+  footer{padding:34px 0;border-top:1px solid var(--line);color:var(--muted);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <!-- capture-frame + text-lines mark, matching the app icon -->
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="1" y="1" width="30" height="30" rx="8" fill="#11161D"/>
+        <g stroke="#22D3EE" stroke-width="2" stroke-linecap="round">
+          <path d="M7 7h6M7 7v6"/><path d="M24 7h-6M24 7v6"/>
+          <path d="M7 24h6M7 24v-6"/><path d="M24 24h-6M24 24v-6"/>
+        </g>
+        <rect x="11" y="13" width="10" height="2" fill="#E6EEF7"/>
+        <rect x="11" y="17" width="7" height="2" fill="#E6EEF7"/>
+      </svg>
+      <h1>Easy Capture To Text</h1>
+    </div>
+
+    <span class="badge">Free · Offline · Windows 10/11</span>
+    <h2 class="tag">Any text on your screen, <span class="hl">on your clipboard</span> — in a keystroke.</h2>
+    <p class="sub">Hit a hotkey, drag a box over anything on screen, and the text is copied — ready to paste.
+       No screenshots to upload, no AI to wait on. It just appears.</p>
+
+    <a class="cta" href="https://github.com/CoreInnovation/EasyCaptureToText-Releases/releases/latest/download/EasyCaptureToText.exe">⬇ Download for Windows</a>
+    <div class="ctahint">Free · ~one 78&nbsp;MB file · no account, no installer bloat · launches to your system tray</div>
+
+    <div class="demo">
+      <!-- Replace with the real demo GIF at launch: <img src="assets/demo.gif" alt="Easy Capture To Text in action"/> -->
+      ▶ demo GIF goes here (Ctrl+Alt+C snip → paste, then Ctrl+Alt+T image → paste)
+    </div>
+  </header>
+</div>
+
+<div class="wrap">
+  <section>
+    <h3 class="sh">Two hotkeys do everything</h3>
+    <div class="grid">
+      <div class="card">
+        <span class="kbd">Ctrl + Alt + C</span>
+        <h4>Capture region → text</h4>
+        <p>The screen freezes, you drag a Snipping-Tool-style box over any text — a PDF you can't select,
+           a video frame, an error dialog, a paywalled page — and it lands on your clipboard as plain text.</p>
+      </div>
+      <div class="card">
+        <span class="kbd">Ctrl + Alt + T</span>
+        <h4>Clipboard image → text</h4>
+        <p>Already have an image on your clipboard (a Win+Shift+S snip, a copied picture)? This reads its
+           text and pastes it straight into whatever you're typing in. <b>Nothing else does this.</b></p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3 class="sh">Why it's different</h3>
+    <div class="why">
+      <div><b>Offline &amp; private.</b> OCR runs on your PC — your captures never leave your device.</div>
+      <div><b>Instant.</b> No screenshot → upload → “generating…” round-trip. It's a reflex.</div>
+      <div><b>The paste-from-image trick</b> nobody else has — image on clipboard to typed text, one key.</div>
+      <div><b>Tiny &amp; out of the way.</b> Lives in the tray, starts with Windows, forget it's there.</div>
+    </div>
+  </section>
+
+  <section>
+    <h3 class="sh">How it works</h3>
+    <ol class="steps">
+      <li><b>Install &amp; forget.</b> It tucks into your system tray and starts with Windows.</li>
+      <li><b>Press the hotkey.</b> Drag a box over text, or point it at a clipboard image.</li>
+      <li><b>Paste.</b> The text is on your clipboard — drop it anywhere. Done.</li>
+    </ol>
+  </section>
+
+  <section class="faq">
+    <h3 class="sh">Questions</h3>
+    <h4>Is it really free?</h4>
+    <p>Yes. Download and use it.</p>
+    <h4>Does it work offline?</h4>
+    <p>Completely. It uses the OCR engine built into Windows — no internet, no account, no data leaves your PC.</p>
+    <h4>What do I need?</h4>
+    <p>Windows 10 or 11. That's it — the download bundles everything else.</p>
+    <h4>Where does my captured text go?</h4>
+    <p>Only to your clipboard. Your captured text and images are <b>never</b> sent anywhere.</p>
+    <h4>Does it connect to the internet at all?</h4>
+    <p>Only to check for updates — an anonymous ping you can switch off in Settings. It never carries
+       anything you captured.</p>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">Made by Core Innovation · © 2026 · Easy Capture To Text</div>
+</footer>
+
+</body>
+</html>

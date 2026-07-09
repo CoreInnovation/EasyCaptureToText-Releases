@@ -1,16 +1,19 @@
 <!DOCTYPE html>
-<!-- Easy Capture To Text — landing page. Served via GitHub Pages once this repo goes public.
-     Remaining pre-launch TODO: drop the demo GIF into assets/demo.gif and swap the .demo placeholder. -->
+<!-- Easy Capture To Text landing page (GitHub Pages). Same structure/methodology as the Better
+     Dictation + Easy Audio Capture pages; ECTT keeps its own cyan identity (vs BD gold / EAC azure).
+     The hero "demo" is a CSS/JS-driven mock of the real magic: a selection box draws over an
+     un-selectable error dialog, an OCR scan sweeps it, and the recognized text lands on a clipboard
+     chip. No GIF needed; deterministic loop, honors prefers-reduced-motion. -->
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Easy Capture To Text — screen to text, instantly & offline</title>
-<meta name="description" content="Press a hotkey, drag a box over any text on screen, and it's on your clipboard. Or turn a clipboard image into pasted text in one shot. Offline, private, no account."/>
+<title>Easy Capture To Text: any text on your screen, on your clipboard</title>
+<meta name="description" content="Hit a hotkey, drag a box over anything on screen — a PDF, a video, an error you can't select — and the text is on your clipboard, ready to paste. Or turn a copied image into typed text in one shot. Offline, private, no account."/>
 <style>
   :root{
-    --bg:#0B0F14; --panel:#131A22; --line:#1B2733; --edge:#2A3F55;
-    --ink:#E6EEF7; --muted:#8FA3B8; --accent:#22D3EE; --accent2:#0E7490;
+    --bg:#0B0F14; --panel:#131A22; --panel2:#182230; --line:#1B2733; --edge:#2A3F55;
+    --ink:#E6EEF7; --muted:#8FA3B8; --accent:#22D3EE; --accent2:#0E7490; --ok:#34D399; --bad:#EF4444;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
@@ -22,48 +25,117 @@
          border:1px solid var(--edge);border-radius:999px;padding:4px 12px;background:#132430}
 
   /* hero */
-  header{padding:64px 0 40px;text-align:center}
+  header{padding:64px 0 40px;text-align:center;position:relative;overflow:hidden}
+  header::before{content:"";position:absolute;inset:-40% -20% auto;height:520px;pointer-events:none;
+       background:radial-gradient(closest-side, rgba(34,211,238,.10), transparent 70%)}
+  header>*{position:relative}
   .logo{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:18px}
   .logo svg{width:52px;height:52px}
   .logo h1{font-size:30px;margin:0;letter-spacing:.2px}
-  h2.tag{font-size:40px;line-height:1.15;margin:14px auto 10px;max-width:720px}
+  h2.tag{font-size:40px;line-height:1.15;margin:14px auto 10px;max-width:730px}
   h2.tag .hl{color:var(--accent)}
-  .sub{color:var(--muted);font-size:18px;max-width:620px;margin:0 auto 26px}
-  .cta{display:inline-flex;align-items:center;gap:10px;background:var(--accent2);
-       color:#fff;font-weight:700;font-size:17px;padding:14px 26px;border-radius:12px;
-       border:1px solid var(--accent);cursor:pointer}
-  .cta[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+  .sub{color:var(--muted);font-size:18px;max-width:640px;margin:0 auto 26px}
+  .cta{display:inline-flex;align-items:center;gap:10px;background:var(--ok);
+       color:#06210c;font-weight:700;font-size:17px;padding:14px 28px;border-radius:12px;
+       box-shadow:0 6px 24px rgba(52,211,153,.22)}
+  .cta:hover{filter:brightness(1.08)}
   .ctahint{color:var(--muted);font-size:13px;margin-top:10px}
 
-  /* demo */
-  .demo{margin:34px auto 0;max-width:760px;border:1px solid var(--edge);border-radius:16px;
-        background:#0e141b;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;
-        color:var(--muted);font-size:14px;overflow:hidden}
-  .demo img{width:100%;height:100%;object-fit:cover;display:block}
+  /* hero demo: the capture flow, animated */
+  .demo{margin:38px auto 0;max-width:680px}
+  .screen{position:relative;border:1px solid var(--edge);border-radius:14px;background:#0e141b;
+        overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.45)}
+  .scr-top{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--panel2);
+        border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+  .scr-title{margin-left:8px}
+  .scr-body{position:relative;padding:34px 26px 40px;min-height:190px;
+        background:repeating-linear-gradient(135deg,#0e141b,#0e141b 22px,#0f1620 22px,#0f1620 44px)}
+  /* the un-selectable 'error dialog' we capture */
+  .errdlg{position:relative;max-width:400px;margin:0 auto;background:var(--panel);border:1px solid var(--edge);
+        border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px;user-select:none}
+  .err-ic{font-size:26px}
+  .err-h{font-weight:700;color:var(--ink);font-size:15px}
+  .err-b{color:var(--muted);font-size:13px;margin-top:3px}
+  .err-btn{margin-left:auto;align-self:flex-end;background:#233245;color:var(--ink);border:1px solid var(--edge);
+        border-radius:6px;padding:5px 14px;font-size:12px}
+  /* selection marquee (drawn inside the dialog so it always aligns to the text) */
+  .marquee{position:absolute;left:12px;top:12px;width:0;height:0;opacity:0;border:2px dashed var(--accent);
+        background:rgba(34,211,238,.10);border-radius:4px;pointer-events:none;
+        transition:width .75s cubic-bezier(.4,0,.2,1),height .75s cubic-bezier(.4,0,.2,1),opacity .25s}
+  .marquee.draw{width:calc(100% - 24px);height:calc(100% - 24px);opacity:1}
+  .marquee .scan{position:absolute;left:0;right:0;top:0;height:26px;opacity:0;
+        background:linear-gradient(180deg,rgba(34,211,238,0),rgba(34,211,238,.5),rgba(34,211,238,0))}
+  .marquee.scanning .scan{opacity:1;animation:scan 0.7s ease-in-out}
+  @keyframes scan{from{top:-26px}to{top:100%}}
+  /* hotkey hint chip that flashes at the start */
+  .hotchip{position:absolute;top:12px;right:16px;font:600 12px/1 Consolas,monospace;color:#06210c;
+        background:var(--accent);border-radius:7px;padding:7px 10px;opacity:0;transform:translateY(-4px);
+        transition:opacity .2s,transform .2s;box-shadow:0 4px 14px rgba(34,211,238,.4)}
+  .hotchip.show{opacity:1;transform:translateY(0)}
+  /* clipboard result bar under the screen */
+  .clip{display:flex;align-items:center;gap:12px;margin-top:14px;background:var(--panel);
+        border:1px solid var(--line);border-radius:12px;padding:13px 16px}
+  .clip-ic{font-size:18px}
+  .clip-txt{flex:1;min-width:0;font:600 13.5px/1.4 Consolas,ui-monospace,monospace;color:var(--ink);
+        white-space:nowrap;overflow:hidden}
+  .clip-txt::after{content:"▋";color:var(--accent);animation:caret .9s step-end infinite}
+  .clip-txt.done::after{content:""}
+  @keyframes caret{50%{opacity:0}}
+  .clip-badge{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--ok);opacity:0;transition:opacity .3s}
+  .clip-badge.show{opacity:1}
 
   /* sections */
   section{padding:46px 0;border-top:1px solid var(--line)}
   h3.sh{color:var(--accent);font-size:13px;letter-spacing:1.4px;text-transform:uppercase;margin:0 0 18px}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  @media(max-width:680px){.grid{grid-template-columns:1fr}.tag{font-size:30px}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
-  .card h4{margin:0 0 6px;font-size:18px}
-  .kbd{display:inline-block;font:600 12px/1 Consolas,monospace;color:var(--accent);
-       background:#132430;border:1px solid var(--accent);border-radius:6px;padding:5px 8px;margin-bottom:10px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+  @media(max-width:680px){.grid3{grid-template-columns:1fr}h2.tag{font-size:30px}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .card h4{margin:0 0 6px;font-size:16px;color:var(--accent)}
   .card p{margin:0;color:var(--muted);font-size:14px}
+  .kbd{display:inline-block;font:600 11.5px/1 Consolas,monospace;color:var(--accent);
+       background:#132430;border:1px solid var(--accent2);border-radius:6px;padding:5px 8px;margin-bottom:9px}
+  .strip{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+        border-radius:14px;padding:16px 20px;margin-top:16px;color:var(--muted);font-size:14px}
+  .strip b{color:var(--ink)}
+  .band{background:linear-gradient(135deg,#12242e,var(--panel));border:1px solid var(--edge);
+        border-radius:16px;padding:26px 28px}
+  .band h4{margin:0 0 8px;font-size:22px}
+  .band h4 .k{color:var(--accent)}
+  .band p{margin:0;color:var(--muted);font-size:15px;max-width:760px}
   .why{display:grid;grid-template-columns:1fr 1fr;gap:14px 28px}
   @media(max-width:680px){.why{grid-template-columns:1fr}}
   .why div{padding-left:26px;position:relative;color:var(--muted);font-size:15px}
-  .why div::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+  .why div::before{content:"✓";position:absolute;left:0;color:var(--ok);font-weight:700}
   .why b{color:var(--ink)}
-  .steps{counter-reset:s;display:grid;gap:14px}
+  .wall{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px 24px}
+  @media(max-width:760px){.wall{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.wall{grid-template-columns:1fr}}
+  .wall div{padding-left:22px;position:relative;color:var(--muted);font-size:13.5px}
+  .wall div::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+  .steps{counter-reset:s;display:grid;gap:14px;margin:0;padding:0}
   .steps li{list-style:none;padding-left:44px;position:relative;color:var(--muted)}
   .steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:-2px;
        width:28px;height:28px;border-radius:50%;background:#132430;border:1px solid var(--accent);
        color:var(--accent);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
   .steps b{color:var(--ink)}
+  /* pricing */
+  .price{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:680px){.price{grid-template-columns:1fr}}
+  .tier{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .tier.hot{border-color:var(--accent2);box-shadow:0 0 0 1px var(--accent2)}
+  .tier .t{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .tier .p{font-size:26px;font-weight:800;margin:6px 0 2px}
+  .tier .p .u{font-size:13px;font-weight:600;color:var(--muted)}
+  .tier .d{color:var(--muted);font-size:13.5px;margin-top:6px}
+  .keys{display:grid;grid-template-columns:1fr 1fr;gap:10px 28px}
+  @media(max-width:680px){.keys{grid-template-columns:1fr}}
+  .keys div{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:14px}
   .faq h4{margin:18px 0 4px;font-size:16px}
   .faq p{margin:0;color:var(--muted);font-size:14px}
+  .faq b{color:var(--ink)}
   footer{padding:34px 0;border-top:1px solid var(--line);color:var(--muted);font-size:13px;text-align:center}
 </style>
 </head>
@@ -74,89 +146,248 @@
     <div class="logo">
       <!-- capture-frame + text-lines mark, matching the app icon -->
       <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <rect x="1" y="1" width="30" height="30" rx="8" fill="#11161D"/>
+        <rect x="1" y="1" width="30" height="30" rx="8" fill="#11161D" stroke="#1B2733"/>
         <g stroke="#22D3EE" stroke-width="2" stroke-linecap="round">
           <path d="M7 7h6M7 7v6"/><path d="M24 7h-6M24 7v6"/>
           <path d="M7 24h6M7 24v-6"/><path d="M24 24h-6M24 24v-6"/>
         </g>
-        <rect x="11" y="13" width="10" height="2" fill="#E6EEF7"/>
-        <rect x="11" y="17" width="7" height="2" fill="#E6EEF7"/>
+        <rect x="11" y="13" width="10" height="2" rx="1" fill="#E6EEF7"/>
+        <rect x="11" y="17" width="7" height="2" rx="1" fill="#E6EEF7"/>
       </svg>
       <h1>Easy Capture To Text</h1>
     </div>
 
-    <span class="badge">Free · Offline · Windows 10/11</span>
-    <h2 class="tag">Any text on your screen, <span class="hl">on your clipboard</span> — in a keystroke.</h2>
-    <p class="sub">Hit a hotkey, drag a box over anything on screen, and the text is copied — ready to paste.
-       No screenshots to upload, no AI to wait on. It just appears.</p>
+    <span class="badge">Free 14-day trial · Offline · Windows 10/11 · One small exe</span>
+    <h2 class="tag">Any text on your screen, <span class="hl">on your clipboard.</span></h2>
+    <p class="sub">Hit a hotkey, drag a box over anything — a PDF you can't select, a video, an error
+       message — and the text is copied, ready to paste. Or turn a copied image into typed text in one
+       shot. No uploading, no waiting on AI. It just appears.</p>
 
     <a class="cta" href="https://github.com/CoreInnovation/EasyCaptureToText-Releases/releases/latest/download/EasyCaptureToText.exe">⬇ Download for Windows</a>
-    <div class="ctahint">Free · ~one 78&nbsp;MB file · no account, no installer bloat · launches to your system tray</div>
+    <div class="ctahint">Full trial, then free forever up to 10 captures a day · no account · installs itself in about a second, no admin needed</div>
 
-    <div class="demo">
-      <!-- Replace with the real demo GIF at launch: <img src="assets/demo.gif" alt="Easy Capture To Text in action"/> -->
-      ▶ demo GIF goes here (Ctrl+Alt+C snip → paste, then Ctrl+Alt+T image → paste)
+    <div class="demo" aria-hidden="true">
+      <div class="screen">
+        <div class="scr-top">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="scr-title">Some app — a wild error appears</span>
+        </div>
+        <div class="scr-body">
+          <div class="errdlg">
+            <div class="err-ic">⛔</div>
+            <div>
+              <div class="err-h">Error 0x8007007E</div>
+              <div class="err-b">The specified module could not be found.</div>
+            </div>
+            <div class="err-btn">OK</div>
+            <div class="marquee" id="marquee"><div class="scan"></div></div>
+          </div>
+          <div class="hotchip" id="hotchip">Ctrl + Alt + C</div>
+        </div>
+      </div>
+      <div class="clip">
+        <span class="clip-ic">📋</span>
+        <span class="clip-txt" id="clipTxt"></span>
+        <span class="clip-badge" id="clipBadge">Copied ✓</span>
+      </div>
     </div>
   </header>
 </div>
 
 <div class="wrap">
   <section>
-    <h3 class="sh">Two hotkeys do everything</h3>
+    <h3 class="sh">The two things it does</h3>
     <div class="grid">
-      <div class="card">
-        <span class="kbd">Ctrl + Alt + C</span>
-        <h4>Capture region → text</h4>
-        <p>The screen freezes, you drag a Snipping-Tool-style box over any text — a PDF you can't select,
-           a video frame, an error dialog, a paywalled page — and it lands on your clipboard as plain text.</p>
-      </div>
-      <div class="card">
-        <span class="kbd">Ctrl + Alt + T</span>
-        <h4>Clipboard image → text</h4>
+      <div class="card"><span class="kbd">Ctrl + Alt + C</span>
+        <h4>📸 Capture region → text</h4>
+        <p>The screen freezes and you drag a box over any text — a PDF you can't select, a video frame,
+           a paywalled page, an error dialog — and it lands on your clipboard as plain text.</p></div>
+      <div class="card"><span class="kbd">Ctrl + Alt + T</span>
+        <h4>🖼 Clipboard image → text</h4>
         <p>Already have an image on your clipboard (a Win+Shift+S snip, a copied picture)? This reads its
-           text and pastes it straight into whatever you're typing in. <b>Nothing else does this.</b></p>
-      </div>
+           text and types it straight into whatever you're working in. <b>Nothing else does this.</b></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h3 class="sh">Five ways to hand off a snip</h3>
+    <div class="grid">
+      <div class="card"><h4>📋 Copy Text</h4>
+        <p>Turns the snip into text on your clipboard. The everyday choice.</p></div>
+      <div class="card"><h4>🖼 Copy Image</h4>
+        <p>Just copies the picture itself, no text conversion.</p></div>
+      <div class="card"><h4>💾 Save Image</h4>
+        <p>Pick a name and folder, save it as a picture file, and it's copied too.</p></div>
+      <div class="card"><h4>📎 Save &amp; Copy Path</h4>
+        <p>Saves the file and copies its location instead of the picture — perfect for dropping into a
+           chat, a script, or an AI tool.</p></div>
+      <div class="card"><h4>⚡ Auto-Save &amp; Copy Path</h4>
+        <p>Saves instantly with no popups and copies the file's location. One click, done. The fastest
+           option there is.</p></div>
+      <div class="card"><h4>🖱 Two at once</h4>
+        <p>Set your left-click drag and right-click drag to two different ones of these — two shortcuts,
+           one motion.</p></div>
+    </div>
+    <div class="strip"><b>Pastes correctly wherever you paste it:</b> every capture copies the text
+      <i>and</i> the picture <i>and</i> a nicely formatted version all at once, so it just works whether
+      you drop it into a plain text box or a chat app that can also take images.</div>
+  </section>
+
+  <section>
+    <div class="band">
+      <h4>Reads text no one else can copy <span class="k">(offline)</span></h4>
+      <p>It uses the OCR engine built right into Windows, so a scanned PDF, a screenshot, a paused video,
+         a locked-down web page, or that error code you were about to retype by hand all become real,
+         selectable text in a keystroke. Everything happens on your PC. Nothing is uploaded, no account,
+         no internet needed to capture. What you screenshot never leaves your machine.</p>
     </div>
   </section>
 
   <section>
     <h3 class="sh">Why it's different</h3>
     <div class="why">
-      <div><b>Offline &amp; private.</b> OCR runs on your PC — your captures never leave your device.</div>
-      <div><b>Instant.</b> No screenshot → upload → “generating…” round-trip. It's a reflex.</div>
-      <div><b>The paste-from-image trick</b> nobody else has — image on clipboard to typed text, one key.</div>
-      <div><b>Tiny &amp; out of the way.</b> Lives in the tray, starts with Windows, forget it's there.</div>
+      <div><b>Instant.</b> No screenshot, upload, and "generating…" round-trip. It's a reflex, not a task.</div>
+      <div><b>Private by design.</b> OCR runs on your PC. Turn your Wi-Fi off and it still works perfectly.</div>
+      <div><b>The paste-from-image trick</b> nothing else has: a copied image becomes typed text in one key.</div>
+      <div><b>Out of your way.</b> Lives in the tray, starts with Windows, forget it is even there.</div>
+      <div><b>Zero friction.</b> One small exe that installs itself in about a second, updates quietly, uninstalls cleanly.</div>
+      <div><b>One-time price.</b> When you want unlimited, it's $9.99 once. No subscription, ever.</div>
+    </div>
+  </section>
+
+  <section>
+    <h3 class="sh">Every feature, at a glance</h3>
+    <div class="wall">
+      <div>Drag-a-box screen capture to text</div>
+      <div>Clipboard image to typed text</div>
+      <div>Built-in offline Windows OCR</div>
+      <div>Copy text, image, or both</div>
+      <div>Save image to a file</div>
+      <div>Save &amp; copy the file path</div>
+      <div>Auto-save with no dialog</div>
+      <div>Different action per mouse button</div>
+      <div>Text + image + formatted clipboard</div>
+      <div>Auto-paste after image OCR</div>
+      <div>Collapse line breaks to one line</div>
+      <div>Pick a specific OCR language</div>
+      <div>Recent captures, re-copy any</div>
+      <div>Sound or notification on capture</div>
+      <div>Choose your save folder</div>
+      <div>Rebindable global hotkeys</div>
+      <div>Lives in the system tray</div>
+      <div>Start automatically at login</div>
+      <div>One-second self-install, no admin</div>
+      <div>Quiet one-click updates</div>
+      <div>Tell-a-friend link button</div>
+      <div>One-time Pro, no subscription</div>
     </div>
   </section>
 
   <section>
     <h3 class="sh">How it works</h3>
     <ol class="steps">
-      <li><b>Install &amp; forget.</b> It tucks into your system tray and starts with Windows.</li>
-      <li><b>Press the hotkey.</b> Drag a box over text, or point it at a clipboard image.</li>
-      <li><b>Paste.</b> The text is on your clipboard — drop it anywhere. Done.</li>
+      <li><b>Download and run.</b> The exe installs itself per-user in about a second. No wizard, no admin prompt.</li>
+      <li><b>Press the hotkey.</b> Drag a box over any text on screen, or point it at an image on your clipboard.</li>
+      <li><b>Paste.</b> The text is on your clipboard, drop it anywhere. Done.</li>
     </ol>
+  </section>
+
+  <section>
+    <h3 class="sh">Simple, honest pricing</h3>
+    <div class="price">
+      <div class="tier"><div class="t">Free trial</div><div class="p">14 days</div>
+        <div class="d">Everything unlocked, no card, no account. Try the whole thing.</div></div>
+      <div class="tier"><div class="t">Then free</div><div class="p">10<span class="u"> / day</span></div>
+        <div class="d">Keeps working forever, free, up to 10 captures a day.</div></div>
+      <div class="tier hot"><div class="t">Pro, one time</div><div class="p">$9.99</div>
+        <div class="d">Pay once, unlimited captures forever. No subscription, ever.</div></div>
+    </div>
   </section>
 
   <section class="faq">
     <h3 class="sh">Questions</h3>
-    <h4>Is it really free?</h4>
-    <p>Yes. Download and use it.</p>
+    <h4>Is it free?</h4>
+    <p>You get 14 days of everything, no account needed. After that it stays free forever with a limit of
+       10 captures a day. Want no limits? A one-time <b>$9.99</b> unlocks unlimited captures for good — no
+       subscription, ever.</p>
     <h4>Does it work offline?</h4>
-    <p>Completely. It uses the OCR engine built into Windows — no internet, no account, no data leaves your PC.</p>
-    <h4>What do I need?</h4>
-    <p>Windows 10 or 11. That's it — the download bundles everything else.</p>
-    <h4>Where does my captured text go?</h4>
-    <p>Only to your clipboard. Your captured text and images are <b>never</b> sent anywhere.</p>
+    <p>Completely. It uses the OCR engine built into Windows, so there is no internet, no account, and no
+       data leaving your PC. Your captures are <b>never</b> sent anywhere.</p>
+    <h4>Windows said "Windows protected your PC"?</h4>
+    <p>That is SmartScreen being cautious with a new, unsigned app. Click <b>More info</b>, then
+       <b>Run anyway</b>. The app installs per-user (no admin prompt) and uninstalls cleanly from
+       Settings → Apps.</p>
     <h4>Does it connect to the internet at all?</h4>
-    <p>Only to check for updates — an anonymous ping you can switch off in Settings. It never carries
-       anything you captured.</p>
+    <p>Only to check for updates: an anonymous version check you can switch off in Settings. It never
+       carries anything you captured.</p>
+    <h4>What do I need?</h4>
+    <p>Windows 10 or 11 (x64). That is it — the download bundles everything else.</p>
   </section>
 </div>
 
 <footer>
-  <div class="wrap">Made by Core Innovation · © 2026 · Easy Capture To Text</div>
+  <div class="wrap">
+    <div>© 2026 <a href="https://coreinnovation.github.io/">Core Innovation Concepts</a> · also by us:
+      <a href="https://coreinnovation.github.io/Better_Dictation-Releases/">Better Dictation</a> ·
+      <a href="https://coreinnovation.github.io/EasyAudioCapture-Releases/">Easy Audio Capture</a></div>
+    <div style="margin-top:6px;opacity:.8">Easy Capture To Text for Windows 10/11 (x64).</div>
+  </div>
 </footer>
+
+<script>
+// Hero animation: press hotkey -> selection box draws over the un-selectable error dialog -> an OCR
+// scan sweeps it -> the recognized text types onto the clipboard chip -> "Copied ✓" -> reset + loop.
+// Deterministic timeline; prefers-reduced-motion jumps straight to the finished state.
+(function () {
+  var marquee = document.getElementById("marquee");
+  var hot = document.getElementById("hotchip");
+  var clip = document.getElementById("clipTxt");
+  var badge = document.getElementById("clipBadge");
+  if (!marquee || !clip) return;
+
+  var RESULT = "Error 0x8007007E — The specified module could not be found.";
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reduced) {
+    marquee.classList.add("draw");
+    clip.textContent = RESULT; clip.classList.add("done");
+    badge.classList.add("show");
+    return;
+  }
+
+  var timers = [];
+  function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
+
+  function typeOut(text, done) {
+    var i = 0;
+    (function step() {
+      clip.textContent = text.slice(0, i);
+      if (i++ <= text.length) timers.push(setTimeout(step, 34));
+      else if (done) done();
+    })();
+  }
+
+  function run() {
+    // reset
+    marquee.classList.remove("draw", "scanning");
+    hot.classList.remove("show");
+    badge.classList.remove("show");
+    clip.classList.remove("done");
+    clip.textContent = "";
+
+    at(500,  function () { hot.classList.add("show"); });
+    at(1150, function () { hot.classList.remove("show"); });
+    at(900,  function () { marquee.classList.add("draw"); });         // box draws over the error
+    at(1750, function () { marquee.classList.add("scanning"); });     // OCR scan sweeps
+    at(2500, function () { typeOut(RESULT); });                        // text lands on the clipboard
+    at(2500 + RESULT.length * 34 + 150, function () {
+      clip.classList.add("done"); badge.classList.add("show");
+    });
+    at(7200, run);                                                     // hold, then loop
+  }
+  run();
+})();
+</script>
 
 </body>
 </html>

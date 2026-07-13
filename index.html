@@ -137,6 +137,32 @@
   .faq p{margin:0;color:var(--muted);font-size:14px}
   .faq b{color:var(--ink)}
   footer{padding:34px 0;border-top:1px solid var(--line);color:var(--muted);font-size:13px;text-align:center}
+  /* screenshot gallery + lightbox */
+  .shots{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  @media(max-width:680px){.shots{grid-template-columns:1fr}}
+  .shot{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;
+        background:#0e141b;aspect-ratio:16/10;display:block}
+  .shot img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;transition:transform .35s}
+  .shot:hover img{transform:scale(1.04)}
+  .shot .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 14px 11px;font-size:13px;color:#fff;
+        background:linear-gradient(0deg,rgba(6,12,18,.94),rgba(6,12,18,0))}
+  .shot .zoom{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:8px;
+        background:rgba(11,15,20,.72);border:1px solid var(--edge);display:flex;align-items:center;
+        justify-content:center;color:var(--accent);font-size:15px;opacity:0;transition:opacity .2s}
+  .shot:hover .zoom{opacity:1}
+  .lb{position:fixed;inset:0;background:rgba(6,10,14,.94);display:none;align-items:center;justify-content:center;z-index:50;padding:36px}
+  .lb.open{display:flex}
+  .lb img{max-width:94vw;max-height:82vh;border:1px solid var(--edge);border-radius:10px;
+        box-shadow:0 24px 80px rgba(0,0,0,.6);background:#0e141b}
+  .lb-cap{position:absolute;bottom:20px;left:0;right:0;text-align:center;color:var(--muted);font-size:14px;padding:0 20px}
+  .lb-x{position:absolute;top:16px;right:22px;font-size:22px;color:var(--muted);cursor:pointer;background:none;border:none;line-height:1}
+  .lb-x:hover{color:var(--ink)}
+  .lb-nav{position:absolute;top:50%;transform:translateY(-50%);font-size:28px;color:var(--ink);cursor:pointer;
+        background:rgba(19,26,34,.72);border:1px solid var(--edge);border-radius:50%;width:48px;height:48px;
+        display:flex;align-items:center;justify-content:center;user-select:none}
+  .lb-nav:hover{border-color:var(--accent);color:var(--accent)}
+  .lb-prev{left:20px}.lb-next{right:20px}
+  @media(max-width:680px){.lb-nav{width:40px;height:40px;font-size:22px}.lb img{max-height:74vh}}
 </style>
 </head>
 <body>
@@ -195,6 +221,16 @@
 </div>
 
 <div class="wrap">
+  <section>
+    <h3 class="sh">See it in action</h3>
+    <div class="shots" id="shots">
+      <div class="shot" data-i="0"><img src="assets/shot-capture.jpg" alt="Dragging a capture box, with the action bar" loading="lazy"><span class="zoom">⤢</span><span class="cap">Drag a box over anything, then pick how to hand it off</span></div>
+      <div class="shot" data-i="1"><img src="assets/shot-result.jpg" alt="On-screen image text turned into pasteable text" loading="lazy"><span class="zoom">⤢</span><span class="cap">Straight from an on-screen image to real, pasteable text</span></div>
+      <div class="shot" data-i="2"><img src="assets/shot-settings.jpg" alt="The settings window" loading="lazy"><span class="zoom">⤢</span><span class="cap">Simple settings: your hotkeys, language, and behavior</span></div>
+      <div class="shot" data-i="3"><img src="assets/shot-tray.jpg" alt="The system-tray menu" loading="lazy"><span class="zoom">⤢</span><span class="cap">Lives quietly in your system tray</span></div>
+    </div>
+  </section>
+
   <section>
     <h3 class="sh">The two things it does</h3>
     <div class="grid">
@@ -333,6 +369,41 @@
     <div style="margin-top:6px;opacity:.8">Easy Capture To Text for Windows 10/11 (x64).</div>
   </div>
 </footer>
+
+<!-- lightbox for the screenshot gallery -->
+<div class="lb" id="lb" aria-hidden="true">
+  <button class="lb-x" id="lbX" aria-label="Close">✕</button>
+  <div class="lb-nav lb-prev" id="lbPrev" aria-label="Previous">‹</div>
+  <img id="lbImg" src="" alt="">
+  <div class="lb-nav lb-next" id="lbNext" aria-label="Next">›</div>
+  <div class="lb-cap" id="lbCap"></div>
+</div>
+
+<script>
+// Screenshot lightbox: click a thumbnail to open it big, arrows / arrow-keys to move between shots,
+// click the backdrop or the ✕ or press Esc to close.
+(function () {
+  var shots = Array.prototype.slice.call(document.querySelectorAll('.shot'));
+  if (!shots.length) return;
+  var lb = document.getElementById('lb'), lbImg = document.getElementById('lbImg'), lbCap = document.getElementById('lbCap');
+  var items = shots.map(function (s) { return { src: s.querySelector('img').getAttribute('src'), cap: s.querySelector('.cap').textContent }; });
+  var idx = 0;
+  function show(i) { idx = (i + items.length) % items.length; lbImg.src = items[idx].src; lbCap.textContent = items[idx].cap; }
+  function open(i) { show(i); lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); }
+  function close() { lb.classList.remove('open'); lb.setAttribute('aria-hidden', 'true'); lbImg.src = ''; }
+  shots.forEach(function (s) { s.addEventListener('click', function () { open(+s.dataset.i); }); });
+  document.getElementById('lbX').addEventListener('click', close);
+  document.getElementById('lbPrev').addEventListener('click', function (e) { e.stopPropagation(); show(idx - 1); });
+  document.getElementById('lbNext').addEventListener('click', function (e) { e.stopPropagation(); show(idx + 1); });
+  lb.addEventListener('click', function (e) { if (e.target === lb) close(); });
+  document.addEventListener('keydown', function (e) {
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowLeft') show(idx - 1);
+    else if (e.key === 'ArrowRight') show(idx + 1);
+  });
+})();
+</script>
 
 <script>
 // Hero animation: press hotkey -> selection box draws over the un-selectable error dialog -> an OCR
